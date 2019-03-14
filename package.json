@@ -1,0 +1,18 @@
+{
+  "name": "sisubermapweb",
+  "version": "1.0.0",
+  "description": "This is web project independed from HEB project, this will be a uber car map that later it will be integrated to the HEB Titanium alloy app for customers via a web view.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "sisUberMapBeta branch sisUberMapWeb"
+  },
+  "author": "Orlando Garcia",
+  "license": "ISC",
+  "dependencies": {
+    "marker-animate-unobtrusive": "^0.2.8"
+  }
+}

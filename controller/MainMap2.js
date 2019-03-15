@@ -208,7 +208,7 @@ class MainMap{
                 }
                 marker.setPosition(location)
                 i++
-                if( i > oneStep.length){
+                if( i >= oneStep.length){
                     i = 0
                 }
             }, 1000)

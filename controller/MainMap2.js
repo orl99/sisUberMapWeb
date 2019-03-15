@@ -45,6 +45,16 @@ window.addEventListener('DOMContentLoaded', async ()=>{
 })
 
 
+// Setting Routes on change value of the panel locations
+let starLocation = document.getElementById('start').value;
+let endLocation = document.getElementById('end').value;
+let gooRouteBtn = document.getElementById('gooRoute')
+console.log(gooRouteBtn)
+gooRouteBtn.addEventListener('click', ()=>{
+    console.log('Goo route')
+    map.onChangeHandler(starLocation, endLocation)
+});
+
 
 
 class MainMap{
@@ -55,6 +65,10 @@ class MainMap{
     this.anotationLoc = null
     this.marker = null
     this.icon = null
+    this.displayDirectionServices = null
+    this.displayDirectionRoute = null
+    // this.displayDirectionServices = new google.maps.DirectionsService;
+    // this.displayDirectionRoute = new google.maps.DirectionsRenderer
   }
 
    initMapClass(location){
@@ -90,13 +104,14 @@ class MainMap{
       icon: this.icon
     });
     //Setting the duration of the animation & the easing animation
+
     this.marker.setDuration(1000);
     this.marker.setEasing('linear')
 
     //Returning the map
     return this.map
   }
-
+ 
   changeCarZooom(width, height){
     //TODO: Mejorarla
     // //Set Icons properties
@@ -151,6 +166,58 @@ class MainMap{
   addNewMarkerandSetCenter(location){
     this.marker.setPosition(location)
     this.map.setCenter(location)
+  }
+
+  onChangeHandler(startLoc, endLoc) {
+    // calculateAndDisplayRoute(directionsService, directionsDisplay);
+    this.setGoogleRoute(startLoc, endLoc, this.marker)
+  }
+
+  setGoogleRoute(start, end, marker){
+    this.displayDirectionServices = new google.maps.DirectionsService;
+    let displayDirectionDrawn = this.displayDirectionRoute = new google.maps.DirectionsRenderer;
+    displayDirectionDrawn.setMap(this.map)
+    // console.log(this.map)
+    // this.displayDirectionRoute.setMap(this.map)
+    // console.log(this.displayDirectionServices)
+    console.log(displayDirectionDrawn)
+    
+    // function calculateAndDisplayRoute(directionsService, directionsDisplay) {
+    this.displayDirectionServices.route({
+        origin: start,
+        destination: end,
+        travelMode: 'DRIVING'
+      }, function(response, status) {
+        if (status === 'OK') {
+            // console.log(response)
+            // console.log(displayDirectionDrawn)
+            displayDirectionDrawn.setDirections(response);
+            let allRoute = response
+            console.log(allRoute)
+            let oneStep = allRoute.routes[0].overview_path;
+            console.log(oneStep);
+            console.log(marker)
+
+            let i = 0
+            setInterval(()=>{
+                let stepLat = oneStep[i].lat()
+                let stepLon = oneStep[i].lng()
+                let location = {
+                    lat: stepLat,
+                    lng: stepLon
+                }
+                marker.setPosition(location)
+                i++
+                if( i > oneStep.length){
+                    i = 0
+                }
+            }, 1000)
+        } else {
+          window.alert('Directions request failed due to ' + status);
+        }
+      });
+
+
   }
 
 

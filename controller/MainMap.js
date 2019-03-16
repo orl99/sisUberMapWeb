@@ -25,23 +25,22 @@ window.addEventListener('DOMContentLoaded', async ()=>{
   mapStarts = await initMapJs()
   console.log(mapStarts)
 
-  mapStarts.addListener('zoom_changed', (e)=>{
-    console.log(mapStarts.zoom)
-      if( mapStarts.zoom >=  17 ){
-        map.changeCarZooom(48, 28)
-      }
-    // if( mapStarts.zoom <= 14 ){
-    //   mapStarts.zoom = 15
-    //   console.log(mapStarts.zoom)
-    //   // console.log()
-    // }
+  // mapStarts.addListener('zoom_changed', (e)=>{
+  //   console.log(mapStarts.zoom)
+  //     if( mapStarts.zoom >=  17 ){
+  //       map.changeCarZooom(48, 28)
+  //     }
 
-    // let location = await map.getMapLocation()
-    // console.log('GET INITIAL LOCATION:')
-    // console.log(location)
-    // map.addNewMarkerandSetCenter(location)
-  })
+  // })
 
+})
+
+
+
+const gooRoute = document.getElementById('gooRoute')
+gooRoute.addEventListener('click', async ()=>{
+  let urlx = 'http://localhost/sisUberMapWeb/API/api.php';
+  await map.getRealTimeDataLocation(urlx, '51618')
 })
 
 
@@ -153,5 +152,46 @@ class MainMap{
     this.map.setCenter(location)
   }
 
+  async getRealTimeDataLocation(url, serviceId){
+    //serviceId data
+    const data = new FormData();
+    data.append('serviceId', serviceId)
+    //custmo header for the fecth request
+      const customHeader = new Headers();
+      customHeader.append('Content-Type', 'application/json')
+    //custom objetc for the fecth request
+      const configAPIConsult = {
+        method: 'POST',
+        // headers: customHeader,
+        body: data
+      }
 
+      //with async await
+      const response = await fetch(url, configAPIConsult)
+
+      switch ( response.status ) {
+        case  200:
+        let rowCoord = await response.json()
+          let coords = {
+            lat: rowCoord.data.latitude,
+            lng: rowCoord.data.longitude
+          } 
+          this.marker.setPosition(coords)
+          console.log(coords)
+          break;
+
+        case 400:
+          console.log('El servidor no pudo interpretar la solicitud')
+          break;
+        case 401:
+          console.log('El servidor no autorizo la solicitud')
+          break;
+        case 403:
+          console.log('El servidor no autorizo la solicitud')
+          break;
+        case 403:
+          console.log('Timeout Erro')
+          break;
+      }
+  } 
 }

@@ -10,6 +10,7 @@
   <body>
 
     <div id="map"></div>
+    <input type="hidden" id="serviceId" value="<?php echo $_GET['serviceId']?>">
 
 
     <!-- Dependencies -->

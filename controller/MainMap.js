@@ -21,7 +21,8 @@ async function initMapJs() {
     //Url del Servio a consumir
     let urlx = 'API/api.php';
     //Service Id
-    let serviceId = 51618
+    const serviceIdX = document.getElementById('serviceId')
+    let serviceId =  serviceIdX
     let hebCar = await map.setHebMarker(urlx, serviceId)
     await map.getRealTimeDataLocation(urlx, serviceId)
   return mapObj

@@ -17,33 +17,23 @@ async function initMapJs() {
   let mapLocation = await map.getMapLocation() 
   console.log(mapLocation)
   let mapObj = map.initMapClass(mapLocation) 
+
+    //Url del Servio a consumir
+    let urlx = 'API/api.php';
+    //Service Id
+    let serviceId = 51618
+    let hebCar = await map.setHebMarker(urlx, serviceId)
+    await map.getRealTimeDataLocation(urlx, serviceId)
   return mapObj
 }
 
 let mapStarts
 window.addEventListener('DOMContentLoaded', async ()=>{
   mapStarts = await initMapJs()
+    
   console.log(mapStarts)
 
-  // mapStarts.addListener('zoom_changed', (e)=>{
-  //   console.log(mapStarts.zoom)
-  //     if( mapStarts.zoom >=  17 ){
-  //       map.changeCarZooom(48, 28)
-  //     }
-
-  // })
-
 })
-
-
-
-const gooRoute = document.getElementById('gooRoute')
-gooRoute.addEventListener('click', async ()=>{
-  let urlx = 'http://localhost/sisUberMapWeb/API/api.php';
-  await map.getRealTimeDataLocation(urlx, '51618')
-})
-
-
 
 
 class MainMap{
@@ -52,79 +42,72 @@ class MainMap{
     this.id = id
     this.map = null
     this.anotationLoc = null
-    this.marker = null
-    this.icon = null
+    this.anotationLocHeb = null
+    this.userMarker = null
+    this.hebCarMarker = null
+    this.userIcon = null
+    this.hebCarIcon = null
   }
 
-   initMapClass(location){
+  async setHebMarker(url, serviceId){
+    console.log('inits:')
+    //getting the hebCarLocation
+    this.anotationLocHeb = await this.getCurentHebCarLocation(url, serviceId);
+    console.log(this.anotationLocHeb)
+    //Making the hebCarMarker
+
+    //Set Icons properties
+    this.hebCarIcon = {
+      url: 'assets/img/sisUberCarBeta4.png',
+      scaledSize: new google.maps.Size(30, 30)
+    }
+
+    this.hebCarMarker = new SlidingMarker({
+      position: this.anotationLocHeb,
+      map: this.map,
+      title: "HEB Car Location",
+      duration: 2000,
+      easing: "easeOutExpo",
+      icon: this.hebCarIcon
+    });
+    //Setting the duration of the animation & the easing animation
+    this.hebCarMarker.setDuration(1000);
+    this.hebCarMarker.setEasing('linear')
+  }
+
+  initMapClass(location){
      //Startin the Map
     this.map = new google.maps.Map(document.getElementById(this.id), {
       center: location,
-      zoom: 15
+      zoom: 15,
+      zoomControl: false,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: false
     });
+
     //Setting the minZoom and maxZoom
-    let opt = { minZoom: 15, maxZoom: 17 };
+    let opt = { minZoom: 13, maxZoom: 17 };
     this.map.setOptions(opt);
 
     //Set Icons properties
-    this.icon = {
-      url: 'assets/img/sisUberCarBeta3.png',
-      scaledSize: new google.maps.Size(38, 20), 
-      // scaled size
-      origin: new google.maps.Point(0,0), // origin
-      anchor: new google.maps.Point(0, 0) // anchor
+    this.userIcon = {
+      url: 'assets/img/userIcon.png',
+      origin: new google.maps.Point(0, 0)
     }
-
-
+    
     //Setting the location
     this.anotationLoc = location;
     //Making the Marker
-    this.marker = new SlidingMarker({
+    this.userMarker = new google.maps.Marker({
       position: this.anotationLoc,
       map: this.map,
-      title: "I'm sliding marker",
-      duration: 2000,
-      easing: "easeOutExpo",
-      // icon: 'assets/img/sisUberCarBeta2.png'
-      icon: this.icon
+      title: "User Location",
+      icon: this.userIcon
     });
-    //Setting the duration of the animation & the easing animation
-    this.marker.setDuration(1000);
-    this.marker.setEasing('linear')
 
     //Returning the map
     return this.map
-  }
-
-  changeCarZooom(width, height){
-    //TODO: Mejorarla
-    // //Set Icons properties
-    // this.icon = {
-    //   url: 'assets/img/sisUberCarBeta3.png',
-    //   scaledSize: new google.maps.Size(38, 20), 
-    //   // scaled size
-    //   origin: new google.maps.Point(0,0), // origin
-    //   anchor: new google.maps.Point(0, 0) // anchor
-    // }
-
-
-    // // //Setting the location
-    // this.anotationLoc = location;
-    // //Making the Marker
-    // this.marker = new SlidingMarker({
-    //   position: this.anotationLoc,
-    //   map: this.map,
-    //   title: "I'm sliding marker",
-    //   duration: 2000,
-    //   easing: "easeOutExpo",
-    //   // icon: 'assets/img/sisUberCarBeta2.png'
-    //   icon: this.icon
-    // });
-
-    // console.log(this.marker.icon.scaledSize = new google.maps.Size(68, 35))
-    // this.marker.icon.origin = new google.maps.Point(0,0), // origin
-    // this.marker.icon.anchor = new google.maps.Point(0, 0) // anchor
-    // console.log(this.marker.icon.url = 'assets/img/sisUberCarBeta2.png')
   }
 
 
@@ -137,22 +120,25 @@ class MainMap{
             lat: position.coords.latitude,
             lng: position.coords.longitude
           }
-          // console.log(pos)
-          // console.log(map)
           resolve(pos)
-          // this.map.setCenter(pos)
-          // this.map.addNewMarker()
         })
       }
     })
   }
 
   addNewMarkerandSetCenter(location){
-    this.marker.setPosition(location)
+    this.userMarker.setPosition(location)
     this.map.setCenter(location)
   }
 
   async getRealTimeDataLocation(url, serviceId){
+     setInterval(async ()=>{
+      let realTimeLoc =  await this.getCurentHebCarLocation(url, serviceId)
+      this.hebCarMarker.setPosition(realTimeLoc)
+    }, 2000)
+  }
+
+  async getCurentHebCarLocation(url, serviceId){
     //serviceId data
     const data = new FormData();
     data.append('serviceId', serviceId)
@@ -173,11 +159,10 @@ class MainMap{
         case  200:
         let rowCoord = await response.json()
           let coords = {
-            lat: rowCoord.data.latitude,
-            lng: rowCoord.data.longitude
-          } 
-          this.marker.setPosition(coords)
-          console.log(coords)
+            lat: parseFloat(rowCoord.data[0].latitude),
+            lng: parseFloat(rowCoord.data[0].longitude)
+          }
+          return coords
           break;
 
         case 400:
@@ -189,8 +174,9 @@ class MainMap{
         case 403:
           console.log('El servidor no autorizo la solicitud')
           break;
-        case 403:
-          console.log('Timeout Erro')
+        default:
+          console.log('Error: ' + response.status)
+          console.log('Error: ' + response.statusText)
           break;
       }
   } 

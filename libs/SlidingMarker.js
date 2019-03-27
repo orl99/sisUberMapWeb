@@ -1,1 +1,264 @@
-!function(a,b){"use strict";"function"==typeof define&&define.amd?define(["jquery","marker-animate"],b.bind(null,a)):"undefined"!=typeof module&&null!==module&&null!=module.exports?module.exports=b(a,require("jquery"),require("marker-animate")):a.SlidingMarker=b(a,a.jQuery)}(this,function(a,b){"use strict";b=b||{},b.extend=b.extend||function m(a){return Array.prototype.slice.call(arguments,1).forEach(function(b){if(b)for(var c in b)b[c]&&b[c].constructor===Object?a[c]&&a[c].constructor!==Object?a[c]=b[c]:(a[c]=a[c]||{},m(a[c],b[c])):a[c]=b[c]}),a};var c,d=google.maps.Marker,e=function(a,b,c){return null===a||void 0===a?void(window.cancelAnimationFrame?window.cancelAnimationFrame(this.AT_animationHandler):clearTimeout(this.AT_animationHandler)):void google.maps.Marker.prototype.animateTo.apply(this,arguments)},f={easing:"easeInOutQuint",duration:1e3,animateFunctionAdapter:function(a,b,d,f){if(!c){if(!google.maps.Marker.prototype.animateTo)throw new Error("Please either reference markerAnimate.js, or provide an alternative animateFunctionAdapter");c=e}c.call(a,b,{easing:d,duration:f,complete:function(){}})}},g=function(a,b){function c(){}c.prototype=b.prototype,a.superClass_=b.prototype,a.prototype=new c,a.prototype.constructor=a},h=function(a,c){g(a,c);var d=c.prototype;b.extend(a.prototype,{_instance:null,originalSet:function(){return d.set.apply(this,arguments)},set:function(a,b){var c=this;c.originalSet.apply(c,arguments),"position"===a&&c instanceof l?c._setInstancePositionAnimated(b):c.originalSet.apply(c._instance,arguments)},_setInstancePositionAnimated:function(a){var b=this;if(!b._constructing)return a&&b._instance.getPosition()?void b.get("animateFunctionAdapter").call(null,b._instance,a,b.get("easing"),b.get("duration")):void(b._instance.getPosition()!==a&&b._instance.setPosition(a))},originalAddListener:function(){return d.addListener.apply(this,arguments)},addListener:function(a,b){var c="map_changed"===a?this._instance:i.call(this,a);return this.originalAddListener.apply(c,arguments)},map_changed:function(){},position_changed:function(){this._suppress_animation?delete this._suppress_animation:this._setInstancePositionAnimated(this.getPosition())}})},i=function(a){return a.endsWith("_changed")?this:this._instance},j=google.maps.event.addListener;google.maps.event.addListener=function(a,b,c){if(a instanceof l){var d="map_changed"===b?a._instance:i.call(a,b);return j.call(this,d,b,c)}return j.apply(this,arguments)};var k=google.maps.event.trigger;google.maps.event.trigger=function(a,b){if(a instanceof l){var c="map_changed"===b?a:i.call(a,b),d=[c].concat(Array.prototype.slice.call(arguments,1));return k.apply(this,d)}return k.apply(this,arguments)},String.prototype.endsWith=String.prototype.endsWith||function(a){return-1!==this.indexOf(a,this.length-a.length)};var l=function(a){a=b.extend({},f,a),this._instance=new d(a),this.animationPosition=null,this._constructing=!0,d.call(this,a),delete this._constructing,this.bindTo("animationPosition",this._instance,"position"),this.bindTo("anchorPoint",this._instance,"anchorPoint"),this.bindTo("internalPosition",this._instance,"internalPosition")};return h(l,d),b.extend(l.prototype,{getAnimationPosition:function(){return this.get("animationPosition")},setPositionNotAnimated:function(a){this._suppress_animation=!0,this.get("animateFunctionAdapter").call(null,this._instance,null),this.originalSet("position",a),this._instance.setPosition(a)},setDuration:function(a){this.set("duration",a)},getDuration:function(){return this.get("duration")},setEasing:function(a){this.set("easing",a)},getEasing:function(){return this.get("easing")}}),l.initializeGlobally=function(){google.maps.Marker=l},l});
+﻿/* global define,module,require,google */
+
+(function (root, factory) {
+    'use strict';
+    if (typeof define === 'function' && define.amd) {
+        // AMD. Register as an anonymous module.
+        define(['jquery', 'marker-animate'], factory.bind(null, root));
+    } else if (typeof module !== "undefined" && module !== null && module.exports != null) { // jshint ignore:line
+        // Node module.
+        module.exports = factory(root, require('jquery'), require('marker-animate'));
+    } else {
+        // Browser globals
+        root.SlidingMarker = factory(root, root.jQuery);
+    }
+}(this,
+    function (root, $) {
+        'use strict';
+
+        //Let jQuery be soft dependency
+        $ = $ || {};
+        $.extend = $.extend || function extend(obj) {
+            //Taken (and modified) from here: http://stackoverflow.com/a/14604815/1691132
+            Array.prototype.slice.call(arguments, 1).forEach(function (source) {
+                if (source) {
+                    for (var prop in source) {
+                        if (source[prop] && source[prop].constructor === Object) {
+                            if (!obj[prop] || obj[prop].constructor === Object) {
+                                obj[prop] = obj[prop] || {};
+                                extend(obj[prop], source[prop]);
+                            } else {
+                                obj[prop] = source[prop];
+                            }
+                        } else {
+                            obj[prop] = source[prop];
+                        }
+                    }
+                }
+            });
+            return obj;
+        };
+
+        var GoogleMarker = google.maps.Marker; //Store original in case it will be replaced in initializeGlobally().
+
+        var animateTo,
+            markerAnimate_AnimateTo_Wrapper = function(destPosition, easing, duration) { //default implementation based on markerAnimate
+                if (destPosition === null || destPosition === undefined) {
+                    //as markerAnimate provides no means to stop animation, do it manually, even though it leaks markerAnimate implementation.
+                    if (window.cancelAnimationFrame) {
+                        window.cancelAnimationFrame(this.AT_animationHandler);
+                    } else {
+                        clearTimeout(this.AT_animationHandler); 
+                    }
+                    return;
+                }
+                google.maps.Marker.prototype.animateTo.apply(this, arguments);
+            };
+
+        //default options
+        var defaultOptions = {
+            easing: "easeInOutQuint",
+            duration: 1000,
+            animateFunctionAdapter: function (marker, destPosition, easing, duration) {
+                if (!animateTo) {
+                    if (!google.maps.Marker.prototype.animateTo) {
+                        throw new Error("Please either reference markerAnimate.js, or provide an alternative animateFunctionAdapter");
+                    }
+                    animateTo = markerAnimate_AnimateTo_Wrapper;
+                }
+                animateTo.call(marker, destPosition, {
+                    easing: easing,
+                    duration: duration,
+                    complete: function () {
+                    }
+                });
+            }
+        };
+
+        var inherits = function (childCtor, parentCtor) {
+            /* @constructor */
+            function TempCtor() {}
+
+            TempCtor.prototype = parentCtor.prototype;
+            childCtor.superClass_ = parentCtor.prototype;
+            childCtor.prototype = new TempCtor();
+            /* @override */
+            childCtor.prototype.constructor = childCtor;
+        };
+
+        var decorates = function (childCtor, parentCtor) {
+            inherits(childCtor, parentCtor);
+
+            var parentPrototype = parentCtor.prototype;
+
+            //TODO: google.maps.MVCObject.prototype.set if object instanceof GoogleMarker
+
+            $.extend(childCtor.prototype, {
+                _instance: null, //override it in constructor
+
+                originalSet: function () {
+                    return parentPrototype.set.apply(this, arguments);
+                },
+
+                //from MVCObject
+                set: function (key, value) {
+                    var that = this;
+
+                    that.originalSet.apply(that, arguments);
+
+                    if (key === "position" && that instanceof SlidingMarker) {
+                        that._setInstancePositionAnimated(value);
+                    } else {
+                        that.originalSet.apply(that._instance, arguments);
+                    }
+                },
+
+                _setInstancePositionAnimated: function (position) {
+                    var that = this;
+
+                    if (that._constructing) { //pass by
+                        return;
+                    }
+
+                    if (!position || !that._instance.getPosition()) { //If position is set for a first time, no animation should be applied
+                        if (that._instance.getPosition() !== position) {
+                            that._instance.setPosition(position);
+                        }
+                        return;
+                    }
+
+                    //apply animation function
+                    //this will cause many animationposition_changed events
+                    that.get("animateFunctionAdapter").call(null, that._instance, position, that.get("easing"), that.get("duration"));
+                },
+
+                //setValues() will call set(), no need to override
+
+                originalAddListener: function () {
+                    return parentPrototype.addListener.apply(this, arguments);
+                },
+
+                //from MVCObject
+                addListener: function (eventName, handler) {
+                    var target = (eventName === "map_changed") ? this._instance : getEventTarget.call(this, eventName);
+                    return this.originalAddListener.apply(target, arguments);
+                },
+
+                map_changed: function () {
+                    //Should be empty
+                    //Prevents this marker from appearing on map. Only this._instance marker will appear.
+                },
+
+                //This will be called by binding created with marker.bindTo() method, instead of call to set("position").
+                position_changed: function () {
+                    if (!this._suppress_animation) {
+                        this._setInstancePositionAnimated(this.getPosition());
+                    } else {
+                        delete this._suppress_animation;
+                    }
+                }
+                
+            });
+
+        };
+
+        //call it on SlidingMarker
+        var getEventTarget = function (eventName) {
+            //redirect _changed events to this, other events to _instance
+            if (eventName.endsWith("_changed")) { //all _changed redirect to this
+                return this;
+            } 
+            return this._instance;
+        };
+
+        var originalAddListener = google.maps.event.addListener;
+        google.maps.event.addListener = function (instance, eventName, handler) {
+            //Redirect listener to target
+            if (instance instanceof SlidingMarker) {
+                var target = (eventName === "map_changed") ? instance._instance : getEventTarget.call(instance, eventName);
+                return originalAddListener.call(this, target, eventName, handler);
+            }
+
+            return originalAddListener.apply(this, arguments);
+        };
+
+        var originalTrigger = google.maps.event.trigger;
+        google.maps.event.trigger = function (instance, eventName) {
+            //Replace instance parameter to target
+            if (instance instanceof SlidingMarker) {
+                var target = (eventName === "map_changed") ? instance : getEventTarget.call(instance, eventName),
+                    newArgs = [target].concat(Array.prototype.slice.call(arguments, 1)); //replaces instance parameter with target
+
+                return originalTrigger.apply(this, newArgs);
+            }
+
+            return originalTrigger.apply(this, arguments);
+        };
+
+        //just string helper
+        String.prototype.endsWith = String.prototype.endsWith || function(suffix) {
+            return this.indexOf(suffix, this.length - suffix.length) !== -1;
+        };
+
+        //constructor
+        var SlidingMarker = function (opt_options) {
+
+            opt_options = $.extend({}, defaultOptions, opt_options);
+
+            this._instance = new GoogleMarker(opt_options);
+
+            this.animationPosition = null;
+
+            this._constructing = true;
+            // Call the parent constructor.
+            GoogleMarker.call(this, opt_options);
+            delete this._constructing;
+
+            this.bindTo("animationPosition", this._instance, "position");
+            this.bindTo("anchorPoint", this._instance, "anchorPoint"); //This makes InfoWindow.open(map, marker) work.
+            this.bindTo("internalPosition", this._instance, "internalPosition"); //This makes InfoWindow.open(map, marker) work.
+
+        };
+
+        decorates(SlidingMarker, GoogleMarker);
+
+        //Overrides
+        $.extend(SlidingMarker.prototype, {
+
+            getAnimationPosition: function () {
+                return this.get("animationPosition");
+            },
+
+            //Changes marker position immediately
+            setPositionNotAnimated: function (position) {
+                this._suppress_animation = true; //will be unset by position_changed handler
+                this.get("animateFunctionAdapter").call(null, this._instance, null); //stop current animation
+                this.originalSet("position", position);
+                this._instance.setPosition(position);
+            },
+
+            setDuration: function (value) {
+                this.set("duration", value);
+            },
+
+            getDuration: function () {
+                return this.get("duration");
+            },
+
+            setEasing: function (value) {
+                this.set("easing", value);
+            },
+
+            getEasing: function () {
+                return this.get("easing");
+            }
+
+        });
+
+        SlidingMarker.initializeGlobally = function () {
+            google.maps.Marker = SlidingMarker;
+        };
+
+        return SlidingMarker;
+
+    }));

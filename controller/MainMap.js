@@ -19,12 +19,17 @@ async function initMapJs() {
   let mapObj = map.initMapClass(mapLocation) 
 
     //Url del Servio a consumir
-    let urlx = 'API/api.php';
+    let urlWS = document.getElementById('urlWS').value
+    console.log(urlWS)
     //Service Id
-    const serviceIdX = document.getElementById('serviceId')
-    let serviceId =  serviceIdX
-    let hebCar = await map.setHebMarker(urlx, serviceId)
-    await map.getRealTimeDataLocation(urlx, serviceId)
+    let serviceId =  document.getElementById('serviceId').value
+
+
+    let hebCar = await map.setHebMarker(urlWS, serviceId)
+    await map.getRealTimeDataLocation(urlWS, serviceId)
+
+
+    map.setCenterBetweenMarkers()
   return mapObj
 }
 
@@ -59,8 +64,8 @@ class MainMap{
 
     //Set Icons properties
     this.hebCarIcon = {
-      url: 'assets/img/sisUberCarBeta4.png',
-      scaledSize: new google.maps.Size(30, 30)
+      url: 'assets/img/userIcon.png',
+      origin: new google.maps.Point(0, 0)
     }
 
     this.hebCarMarker = new SlidingMarker({
@@ -79,7 +84,6 @@ class MainMap{
   initMapClass(location){
      //Startin the Map
     this.map = new google.maps.Map(document.getElementById(this.id), {
-      center: location,
       zoom: 15,
       zoomControl: false,
       mapTypeControl: false,
@@ -93,8 +97,10 @@ class MainMap{
 
     //Set Icons properties
     this.userIcon = {
-      url: 'assets/img/userIcon.png',
-      origin: new google.maps.Point(0, 0)
+      url: 'assets/img/sisUberCarBeta4.png',
+      // url: 'assets/img/userIcon.png',
+      // origin: new google.maps.Point(0, 0)
+      scaledSize: new google.maps.Size(30, 30)
     }
     
     //Setting the location
@@ -126,10 +132,12 @@ class MainMap{
       }
     })
   }
-
-  addNewMarkerandSetCenter(location){
-    this.userMarker.setPosition(location)
-    this.map.setCenter(location)
+//Note: Only use thos method when all the markers and the map are set
+  setCenterBetweenMarkers(){
+    let bounds =  new google.maps.LatLngBounds();
+    bounds.extend(this.hebCarMarker.position)
+    bounds.extend(this.userMarker.position)
+    this.map.fitBounds(bounds)
   }
 
   async getRealTimeDataLocation(url, serviceId){
